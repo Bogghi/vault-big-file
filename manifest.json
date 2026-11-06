@@ -1,0 +1,9 @@
+{
+	"id": "vault-big-file",
+	"name": "Vault big file",
+	"version": "0.1.0",
+	"minAppVersion": "1.11.4",
+	"description": "Syncs files above the Obsidian Sync size limit through a Cloudflare R2 (S3-compatible) bucket.",
+	"author": "Bogghi",
+	"isDesktopOnly": false
+}
