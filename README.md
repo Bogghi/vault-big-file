@@ -19,11 +19,13 @@ Obsidian Sync's Standard plan skips files larger than 5 MB. This plugin syncs th
 2. In **Settings → Vault big file**, set the endpoint (`https://<account-id>.r2.cloudflarestorage.com`) and the bucket.
 3. Pick or create the access key ID and secret access key in secret storage. On each device, create the secrets with the same names.
 
-Requires Obsidian 1.11.4 or later.
+Requires Obsidian 1.13.0 or later.
 
 ## Privacy and network use
 
-The plugin only connects to the endpoint you configure. It uploads files above the size threshold, and nothing else. There's no telemetry. Credentials stay in Obsidian's secret storage on each device and are never written to `data.json`.
+The plugin only connects to the endpoint you configure. It uploads files above the size threshold, and nothing else. There's no telemetry.
+
+To find those files, the plugin reads the size of every file in the vault (`vault.getFiles()`). Paths and sizes of smaller files never leave the device. Credentials stay in Obsidian's secret storage on each device and are never written to `data.json`.
 
 ## Known limitations
 

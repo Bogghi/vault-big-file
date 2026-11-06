@@ -1,5 +1,4 @@
-import { App, PluginSettingTab, SecretComponent, Setting } from 'obsidian';
-import type VaultBigFile from './main';
+import { PluginSettingTab, SettingDefinitionItem } from 'obsidian';
 
 export interface VaultBigFileSettings {
 	endpoint: string;
@@ -22,65 +21,60 @@ export const DEFAULT_SETTINGS: VaultBigFileSettings = {
 	secretAccessKeySecret: '',
 };
 
+type Key = keyof VaultBigFileSettings;
+
+const atLeastOne = (v: number) => (Number.isFinite(v) && v >= 1 ? undefined : 'Must be at least 1.');
+
+const trimmed = (v: string) => (v !== v.trim() ? 'Remove leading or trailing spaces.' : undefined);
+
+// Declarative settings: Obsidian renders them, makes them searchable, and persists plugin.settings.
 export class VaultBigFileSettingTab extends PluginSettingTab {
-	constructor(
-		app: App,
-		private plugin: VaultBigFile,
-	) {
-		super(app, plugin);
-	}
-
-	display(): void {
-		const { containerEl } = this;
-		const s = this.plugin.settings;
-		containerEl.empty();
-
-		const text = (name: string, desc: string, key: 'endpoint' | 'bucket' | 'prefix', valid: (v: string) => boolean) =>
-			new Setting(containerEl)
-				.setName(name)
-				.setDesc(desc)
-				.addText((t) =>
-					t.setValue(s[key]).onChange(async (v) => {
-						v = v.trim();
-						if (!valid(v)) return;
-						s[key] = v;
-						await this.plugin.saveSettings();
-					}),
-				);
-		const number = (name: string, desc: string, key: 'thresholdMB' | 'intervalMinutes') =>
-			new Setting(containerEl)
-				.setName(name)
-				.setDesc(desc)
-				.addText((t) =>
-					t.setValue(String(s[key])).onChange(async (v) => {
-						const n = Number(v);
-						if (!Number.isFinite(n) || n < 1) return;
-						s[key] = n;
-						await this.plugin.saveSettings();
-					}),
-				);
-		const secret = (name: string, key: 'accessKeyIdSecret' | 'secretAccessKeySecret') =>
-			new Setting(containerEl)
-				.setName(name)
-				.setDesc('Stored in this device\'s secret storage. Not synced.')
-				.addComponent((el) =>
-					new SecretComponent(this.app, el).setValue(s[key]).onChange(async (v) => {
-						s[key] = v;
-						await this.plugin.saveSettings();
-					}),
-				);
-
-		text(
-			'Endpoint',
-			'For example https://<account-id>.r2.cloudflarestorage.com',
-			'endpoint',
-			(v) => v === '' || /^https:\/\/[^/]+\/?$/.test(v),
-		);
-		text('Bucket', 'Name of the R2 bucket.', 'bucket', () => true);
-		text('Prefix', 'Folder inside the bucket for this vault. Changing it starts a fresh sync.', 'prefix', (v) => !v.startsWith('/'));
-		secret('Access key ID', 'accessKeyIdSecret');
-		secret('Secret access key', 'secretAccessKeySecret');
-		number('Size threshold (MB)', 'Files larger than this are synced through R2.', 'thresholdMB');
-		number('Check interval (minutes)', 'How often to look for changes from other devices.', 'intervalMinutes');
+	getSettingDefinitions(): SettingDefinitionItem<Key>[] {
+		return [
+			{
+				name: 'Endpoint',
+				desc: 'For example https://<account-id>.r2.cloudflarestorage.com',
+				control: {
+					type: 'text',
+					key: 'endpoint',
+					validate: (v) =>
+						v === '' || /^https:\/\/[^/\s]+\/?$/.test(v) ? undefined : 'Use https://host with no path.',
+				},
+			},
+			{
+				name: 'Bucket',
+				desc: 'Name of the R2 bucket.',
+				control: { type: 'text', key: 'bucket', validate: trimmed },
+			},
+			{
+				name: 'Prefix',
+				desc: 'Folder inside the bucket for this vault. Changing it starts a fresh sync.',
+				control: {
+					type: 'text',
+					key: 'prefix',
+					validate: (v) => (v.startsWith('/') ? 'Must not start with /.' : trimmed(v)),
+				},
+			},
+			{
+				name: 'Access key ID',
+				desc: "Stored in this device's secret storage. Not synced.",
+				control: { type: 'secret', key: 'accessKeyIdSecret' },
+			},
+			{
+				name: 'Secret access key',
+				desc: "Stored in this device's secret storage. Not synced.",
+				control: { type: 'secret', key: 'secretAccessKeySecret' },
+			},
+			{
+				name: 'Size threshold (MB)',
+				desc: 'Files larger than this are synced through R2.',
+				control: { type: 'number', key: 'thresholdMB', min: 1, step: 1, validate: atLeastOne },
+			},
+			{
+				name: 'Check interval (minutes)',
+				desc: 'How often to look for changes from other devices.',
+				control: { type: 'number', key: 'intervalMinutes', min: 1, step: 1, validate: atLeastOne },
+			},
+		];
 	}
 }
