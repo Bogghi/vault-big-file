@@ -128,7 +128,7 @@ export class BigFileSync {
 		if (remote.size === 0 && Object.keys(base).length > 0) {
 			this.status('Big files: paused (bucket empty)');
 			new Notice(
-				'Vault big file: the bucket is empty but files were synced before. Sync is paused so no local files get deleted. Check the bucket and prefix, or run "Reset sync state".',
+				'Vault big file: the bucket is empty but files were synced before. Sync is paused so no local files get deleted. Check the bucket and prefix, or reset the sync state from the command palette.',
 			);
 			return;
 		}
@@ -137,7 +137,12 @@ export class BigFileSync {
 		for (const f of this.app.vault.getFiles()) if (f.stat.size > this.threshold) paths.add(f.path);
 
 		let errors = 0;
+		let skipped = 0;
 		for (const path of paths) {
+			if ((this.app.vault.getFileByPath(path)?.stat.size ?? 0) > MAX_SIZE || (remote.get(path)?.size ?? 0) > MAX_SIZE) {
+				skipped++;
+				continue;
+			}
 			try {
 				await this.syncPath(r2, prefix + path, path, remote.get(path), base);
 			} catch (e) {
@@ -148,16 +153,13 @@ export class BigFileSync {
 		}
 
 		const time = new Date().toLocaleTimeString();
-		this.status(errors ? `Big files: ${errors} failed (${time})` : `Big files: synced ${time}`);
+		const over = skipped ? `, ${skipped} over 50 MB skipped` : '';
+		this.status(errors ? `Big files: ${errors} failed${over} (${time})` : `Big files: synced${over} ${time}`);
 		if (manual) new Notice(errors ? `Vault big file: ${errors} files failed, see console.` : 'Vault big file: synced.');
 	}
 
 	private async syncPath(r2: R2, key: string, path: string, remote: RemoteObject | undefined, base: Base) {
 		const file = this.app.vault.getFileByPath(path);
-		if ((file?.stat.size ?? 0) > MAX_SIZE || (remote?.size ?? 0) > MAX_SIZE) {
-			console.warn(`[vault-big-file] skipping ${path}: larger than ${MAX_SIZE} bytes`);
-			return;
-		}
 		switch (decide(file?.stat, remote, base[path])) {
 			case 'none':
 				return;
