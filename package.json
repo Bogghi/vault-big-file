@@ -1,6 +1,6 @@
 {
 	"name": "vault-big-file",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Sync files above the Obsidian Sync size limit through Cloudflare R2",
 	"main": "main.js",
 	"type": "module",

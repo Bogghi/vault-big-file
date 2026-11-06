@@ -1,7 +1,7 @@
 {
 	"id": "vault-big-file",
 	"name": "Vault big file",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"minAppVersion": "1.13.0",
 	"description": "Syncs files above the 5 MB sync limit through your own Cloudflare R2 or S3-compatible bucket.",
 	"authorUrl": "https://github.com/Bogghi",
